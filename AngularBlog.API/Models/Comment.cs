@@ -1,10 +1,9 @@
-﻿using BlazorBlog.API.Abstracts;
-using System;
+﻿using System;
 using System.Collections.Generic;
 
 namespace BlazorBlog.API.Models
 {
-    public partial class Comment:IModel
+    public partial class Comment
     {
         public int Id { get; set; }
         public int ArticleId { get; set; }

@@ -1,16 +1,10 @@
-﻿using System;
-using System.Collections.Generic;
-using System.Linq;
-using System.Threading.Tasks;
+﻿using BlazorBlog.API.Dtos;
+using BlazorBlog.API.Models;
+using BlazorBlog.API.Response;
 using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
-using BlazorBlog.API.Models;
-using BlazorBlog.API.Response;
-using Microsoft.AspNetCore.Mvc.RazorPages;
-using System.Drawing.Printing;
 using System.Globalization;
-using BlazorBlog.API.Dtos;
 
 namespace BlazorBlog.API.Controllers
 {
@@ -18,13 +12,12 @@ namespace BlazorBlog.API.Controllers
     [ApiController]
     public class ArticlesController : ControllerBase
     {
-        private readonly AngularBlogDBContext _context;
+        private readonly BlazorBlogDBContext _context;
 
-        public ArticlesController(AngularBlogDBContext context)
+        public ArticlesController(BlazorBlogDBContext context)
         {
             _context = context;
         }
-
         // GET: api/Articles
         [HttpGet]
         public async Task<ActionResult<IEnumerable<Article>>> GetArticles()
@@ -33,7 +26,7 @@ namespace BlazorBlog.API.Controllers
             return await _context.Articles.ToListAsync();
         }
         [HttpGet("{page}/{pageSize}")]
-        public async Task<ActionResult<ServerDataResponse<ArticleDto>>> GetArticlesByPaginately(int page= 1,int pageSize = 5)
+        public async Task<ActionResult<ServerDataResponse<ArticleDto>>> GetArticlesByPaginately(int page = 1, int pageSize = 5)
         {
             IQueryable<Article> query;
             query = _context.Articles.Include(x => x.Category).Include(x => x.Comments).OrderByDescending(x => x.PublishDate);
@@ -132,7 +125,8 @@ namespace BlazorBlog.API.Controllers
             return _context.Articles.Any(e => e.Id == id);
         }
         [HttpGet("ArticlesAsCategory/{categoryId}/{page?}/{pageSize?}")]
-        public async Task<ActionResult<ServerDataResponse<ArticleDto>>> GetArticlesByCategoryId(int categoryId,int page = 1,int pageSize = 5) {
+        public async Task<ActionResult<ServerDataResponse<ArticleDto>>> GetArticlesByCategoryId(int categoryId, int page = 1, int pageSize = 5)
+        {
 
             IQueryable<Article> query;
             query = _context.Articles.Include(x => x.Category).Where(x => x.CategoryId == categoryId).OrderByDescending(x => x.PublishDate);
@@ -160,9 +154,9 @@ namespace BlazorBlog.API.Controllers
             return await query.ToListAsync();
         }
         [HttpGet("ArchivesArticles/{tillTheYears:int}")]
-        public  IActionResult GetArchivesArticles(int tillTheYears = 5)
+        public IActionResult GetArchivesArticles(int tillTheYears = 5)
         {
-            var query = _context.Articles.Where(x => x.PublishDate >=DateTime.Now.AddYears(-(tillTheYears))).GroupBy(x => new
+            var query = _context.Articles.Where(x => x.PublishDate >= DateTime.Now.AddYears(-(tillTheYears))).GroupBy(x => new
             {
                 x.PublishDate.Year,
                 x.PublishDate.Month
@@ -173,13 +167,13 @@ namespace BlazorBlog.API.Controllers
                 month = y.Key.Month,
                 count = y.Count(),
                 monthName = CultureInfo.CreateSpecificCulture("en-US").DateTimeFormat.GetMonthName(y.Key.Month),
-                
+
             }).OrderByDescending(z => z.year);
-            
+
             return Ok(query);
         }
         [HttpGet("ListOfArchivedArticles/{year}/{month}/{page}/{pageSize}")]
-        public async Task<ActionResult<ServerDataResponse<ArticleDto>>> GetArchivedArticlesByYearAndMonth(int year,int month,int page = 1, int pageSize = 5)
+        public async Task<ActionResult<ServerDataResponse<ArticleDto>>> GetArchivedArticlesByYearAndMonth(int year, int month, int page = 1, int pageSize = 5)
         {
             IQueryable<Article> query;
             query = _context.Articles.Where(x => x.PublishDate.Month == month && x.PublishDate.Year == year)

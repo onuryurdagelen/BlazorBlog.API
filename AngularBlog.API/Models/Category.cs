@@ -1,10 +1,9 @@
-﻿using BlazorBlog.API.Abstracts;
-using System;
+﻿using System;
 using System.Collections.Generic;
 
 namespace BlazorBlog.API.Models
 {
-    public partial class Category:IModel
+    public partial class Category
     {
         public Category()
         {

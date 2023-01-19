@@ -13,9 +13,9 @@ namespace BlazorBlog.API.Controllers
     [ApiController]
     public class CategoriesController : ControllerBase
     {
-        private readonly AngularBlogDBContext _context;
+        private readonly BlazorBlogDBContext _context;
 
-        public CategoriesController(AngularBlogDBContext context)
+        public CategoriesController(BlazorBlogDBContext context)
         {
             _context = context;
         }

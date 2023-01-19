@@ -6,6 +6,7 @@ using BlazorBlog.API.Response;
 using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
+using MimeKit.Encodings;
 
 namespace BlazorBlog.API.Controllers
 {
@@ -14,19 +15,19 @@ namespace BlazorBlog.API.Controllers
     public class AuthController : ControllerBase
     {
 
-        private readonly AngularBlogDBContext _context;
+        private readonly BlazorBlogDBContext _context;
         private readonly IConfiguration _config;
 
-        public AuthController(AngularBlogDBContext context, IConfiguration configuration)
+        public AuthController(BlazorBlogDBContext context, IConfiguration configuration)
         {
             _context = context;
             _config = configuration;
         }
 
         [HttpPost]
-        public async Task<ActionResult<ServerResponse>> Register(UserRegisterDto userRegisterDto)
+        public async Task<ActionResult<ServerDataResponse<UserRegisterDto>>> Register(UserRegisterDto userRegisterDto)
         {
-            ServerResponse response = new ServerResponse();
+            ServerDataResponse<UserRegisterDto> response = new ServerDataResponse<UserRegisterDto>();
             /* password hash ve password salt oluştur.
              * yeni bir user nesnesi oluştur.Password salt ve password hash'i user nesnesine al.
              * user nesnesi oluşturulduktan sonra veritabanında bu kullanıcının'ın varlığını kontrol et.
@@ -41,7 +42,8 @@ namespace BlazorBlog.API.Controllers
             {
                 CreatedDate = DateTime.UtcNow,
                 EmailAddress = userRegisterDto.EmailAddress,
-                PassswordHash = passwordHash,
+                FullName = userRegisterDto.FullName,
+                PasswordHash = passwordHash,
                 PasswordSalt = passwordSalt,
             };
             User checkedUser = await _context.Users.Where(x => x.EmailAddress == userRegisterDto.EmailAddress).FirstOrDefaultAsync();
@@ -49,19 +51,22 @@ namespace BlazorBlog.API.Controllers
             if (checkedUser != null) {
                 response.Error = "Such a user already exists.";
                 response.IsSuccess = false;
+                response.Data = null;
                 response.StatusCode = System.Net.HttpStatusCode.BadRequest;
 
                 return BadRequest(response);
             }
             await _context.Users.AddAsync(user);
+            await _context.SaveChangesAsync();
             response.IsSuccess = true;
             response.Message = "Registration successfully done.";
             response.StatusCode = System.Net.HttpStatusCode.OK;
+            response.Data = userRegisterDto;
 
             return Ok(response);
         }
 
-        [HttpGet]
+        [HttpPost]
         public async Task<ActionResult<ServerDataResponse<Token>>> Login(UserLoginDto userLoginDto)
         {
             ServerDataResponse<Token> response = new ServerDataResponse<Token>();
@@ -71,15 +76,21 @@ namespace BlazorBlog.API.Controllers
             //Böyle bir kullanıcı var ise
             if (existedUser != null)
             {
-                var verifiedUser = HashingHelper.VerifyPasswordHash(userLoginDto.Password, existedUser.PassswordHash, existedUser.PasswordSalt);
+                var verifiedUser = HashingHelper.VerifyPasswordHash(userLoginDto.Password, existedUser.PasswordHash, existedUser.PasswordSalt);
                 //Var olan kullanıcı ile login bilgileri eşleşiyor ise
                 if (verifiedUser)
                 {
                     //kullanıcıya ait claim'leri al.
 
-                    UserAppClaim userAppClaim = await _context.UserAppClaims.Where(x => x.UserId == existedUser.Id).FirstOrDefaultAsync();
+                    List<UserAppClaim> userAppClaims = await _context.UserAppClaims.Where(x => x.UserId == existedUser.Id).ToListAsync();
 
-                    List<AppClaim> appClaims = await _context.AppClaims.Where(x => x.Id == userAppClaim.AppClaimId).ToListAsync();
+                    List<AppClaim> appClaims = new List<AppClaim>();
+
+                    foreach (var item in userAppClaims)
+                    {
+                        AppClaim appClaim = await _context.AppClaims.Where(x => x.Id == item.AppClaimId).FirstOrDefaultAsync();
+                        appClaims.Add(appClaim);
+                    }
 
                     //Token oluştur.
                     TokenHelper tokenHelper = new TokenHelper(_config);

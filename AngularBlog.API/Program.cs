@@ -17,7 +17,10 @@ builder.Services.AddControllers(options  =>options.Filters.Add<ValidationFilter>
 	.AddFluentValidation(config => config.RegisterValidatorsFromAssemblyContaining<ContactEmailValidator>())
 	.ConfigureApiBehaviorOptions(options => options.SuppressModelStateInvalidFilter = true)
 	.AddNewtonsoftJson(options =>
-	options.SerializerSettings.ReferenceLoopHandling = Newtonsoft.Json.ReferenceLoopHandling.Ignore);
+	{
+		options.SerializerSettings.ReferenceLoopHandling = Newtonsoft.Json.ReferenceLoopHandling.Ignore;
+
+    });
 
 
 builder.Services.AddCors(options =>
@@ -30,7 +33,7 @@ builder.Services.AddCors(options =>
 });
 
 
-builder.Services.AddDbContext<AngularBlogDBContext>(options =>
+builder.Services.AddDbContext<BlazorBlogDBContext>(options =>
 {
 	options.UseSqlServer(builder.Configuration.GetConnectionString("Onur"));
 });
