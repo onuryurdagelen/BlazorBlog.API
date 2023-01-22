@@ -43,6 +43,22 @@ builder.Services.AddSwaggerGen();
 
 var app = builder.Build();
 
+//var staticFileOptions = new StaticFileOptions
+//{
+//    OnPrepareResponse = (context) =>
+//    {
+//        var fn = context.File.Name.ToLowerInvariant();
+//        if (fn.EndsWith(".pdf"))
+//        {
+//        }
+//        else
+//        {
+//            context.Context.Response.Headers.Add("Cache-Control", "public, max-age=15552000"); // 180 days
+//        }
+//    }
+//};
+
+
 // Configure the HTTP request pipeline.
 if (app.Environment.IsDevelopment())
 {
@@ -51,7 +67,7 @@ if (app.Environment.IsDevelopment())
 }
 app.UseCors();
 app.UseHttpsRedirection();
-
+app.UseStaticFiles();
 app.UseAuthorization();
 
 app.MapControllers();

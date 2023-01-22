@@ -28,6 +28,8 @@
   <ItemGroup>
     <Folder Include="Configurations\" />
     <Folder Include="Utils\" />
+    <Folder Include="wwwroot\assets\images\articles\" />
+    <Folder Include="wwwroot\assets\images\users\" />
   </ItemGroup>
 
 </Project>

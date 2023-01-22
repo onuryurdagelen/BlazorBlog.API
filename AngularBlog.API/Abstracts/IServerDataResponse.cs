@@ -3,7 +3,7 @@ using System.Net;
 
 namespace BlazorBlog.API.Response
 {
-    public class IServerDataResponse<TResponse> where TResponse : class,IDto,new()
+    public class IServerDataResponse<TResponse> where TResponse : class,new()
     {
         TResponse Data { get; }
         string Error { get; }

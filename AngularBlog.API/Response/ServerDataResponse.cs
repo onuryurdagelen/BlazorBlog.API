@@ -4,7 +4,7 @@ using System.Text.Json;
 
 namespace BlazorBlog.API.Response
 {
-    public class ServerDataResponse<TResponse> : IServerDataResponse<TResponse> where TResponse : class,IDto,new()
+    public class ServerDataResponse<TResponse> : IServerDataResponse<TResponse> where TResponse : class,new()
     {
         #region Variables
         public TResponse Data { get; set; }

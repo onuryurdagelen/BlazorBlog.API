@@ -58,6 +58,14 @@ namespace BlazorBlog.API.Controllers
             }
             await _context.Users.AddAsync(user);
             await _context.SaveChangesAsync();
+            AppClaim appClaim = await _context.AppClaims.Where(x => x.Id == 3).FirstOrDefaultAsync();
+            if (appClaim != null)
+                await _context.UserAppClaims.AddAsync(new UserAppClaim
+                {
+                    AppClaimId = appClaim.Id,
+                    UserId = user.Id,
+                });
+            await _context.SaveChangesAsync();
             response.IsSuccess = true;
             response.Message = "Registration successfully done.";
             response.StatusCode = System.Net.HttpStatusCode.OK;
