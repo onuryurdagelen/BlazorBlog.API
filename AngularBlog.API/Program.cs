@@ -1,5 +1,6 @@
 using BlazorBlog.API.Models;
 using BlazorBlog.API.Services.Filters;
+using BlazorBlog.API.Validators.Article;
 using BlazorBlog.API.Validators.Email;
 using FluentValidation.AspNetCore;
 using Microsoft.EntityFrameworkCore;
@@ -13,8 +14,15 @@ var builder = WebApplication.CreateBuilder(args);
 //        .Get<EmailConfiguration>();
 //builder.Services.AddSingleton(emailConfig);
 
-builder.Services.AddControllers(options  =>options.Filters.Add<ValidationFilter>())
-	.AddFluentValidation(config => config.RegisterValidatorsFromAssemblyContaining<ContactEmailValidator>())
+builder.Services.AddControllers(options =>
+{
+	options.Filters.Add<ValidationFilter>();
+})
+	.AddFluentValidation(config =>
+	{
+		config.RegisterValidatorsFromAssemblyContaining<ContactEmailValidator>();
+
+    })
 	.ConfigureApiBehaviorOptions(options => options.SuppressModelStateInvalidFilter = true)
 	.AddNewtonsoftJson(options =>
 	{

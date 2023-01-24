@@ -36,6 +36,7 @@ namespace BlazorBlog.API.Controllers
              * Kullanıcı ile beraber kullanıcının claim bilgilerini jwt token ile kullanıcıya gönder.
              * 
              */
+
             byte[] passwordHash, passwordSalt;
             HashingHelper.CreatePasswordHash(userRegisterDto.Password, out passwordHash, out passwordSalt);
             User user = new User()
@@ -52,9 +53,9 @@ namespace BlazorBlog.API.Controllers
                 response.Error = "Such a user already exists.";
                 response.IsSuccess = false;
                 response.Data = null;
-                response.StatusCode = System.Net.HttpStatusCode.BadRequest;
+                response.StatusCode = System.Net.HttpStatusCode.NotFound;
 
-                return BadRequest(response);
+                return NotFound(response);
             }
             await _context.Users.AddAsync(user);
             await _context.SaveChangesAsync();

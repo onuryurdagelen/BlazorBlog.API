@@ -1,4 +1,5 @@
-﻿using BlazorBlog.API.Dtos;
+﻿using BlazorBlog.API.BusinessRules;
+using BlazorBlog.API.Dtos;
 using BlazorBlog.API.Models;
 using BlazorBlog.API.Response;
 using Microsoft.AspNetCore.Http;
@@ -60,16 +61,23 @@ namespace BlazorBlog.API.Controllers
 
         // GET: api/Articles/5
         [HttpGet("{id}")]
-        public async Task<ActionResult<Article>> GetArticle(int id)
+        public async Task<ActionResult<ServerDataResponse<Article>>> GetArticle(int id)
         {
+            ServerDataResponse<Article> response = new ServerDataResponse<Article>();
             var article = await _context.Articles.Include(x => x.Category).Where(x => x.Id == id).FirstOrDefaultAsync();
 
             if (article == null)
             {
-                return NotFound();
+                response.Message = "Article Not Found";
+                response.IsSuccess = false;
+                response.StatusCode = System.Net.HttpStatusCode.NotFound;
+                return NotFound(response);
             }
-
-            return article;
+            response.Message = "Başarılı";
+            response.Data = article;
+            response.IsSuccess = true;
+            response.StatusCode = System.Net.HttpStatusCode.OK;
+            return Ok(response);
         }
 
         // PUT: api/Articles/5
@@ -157,11 +165,27 @@ namespace BlazorBlog.API.Controllers
             return Ok(response);
         }
         [HttpGet("MostViewedArticles")]
-        public async Task<IEnumerable<Article>> GetMostViewedArticles()
+        public async Task<ActionResult<ServerDataResponse<List<Article>>>> GetMostViewedArticles()
         {
+            ServerDataResponse<List<Article>> response = new ServerDataResponse<List<Article>>();
             IQueryable<Article> query;
             query = _context.Articles.OrderByDescending(x => x.ViewCount).Take(5);
-            return await query.ToListAsync();
+            List<Article> result= await query.ToListAsync();
+
+            if(result.Count > 0)
+            {
+                response.Data = result;
+                response.IsSuccess = true;
+                response.StatusCode = System.Net.HttpStatusCode.OK;
+                
+                return Ok(response); 
+            
+            }
+            response.StatusCode=System.Net.HttpStatusCode.BadRequest;
+            response.Error = "Hata oluştu.";
+            response.IsSuccess=false;
+            return BadRequest(response);
+
         }
         [HttpGet("ArchivesArticles/{tillTheYears:int}")]
         public async Task<ActionResult<ServerDataResponse<List<ArchivedArticleDto>>>> GetArchivesArticles(int tillTheYears = 5)
@@ -236,34 +260,20 @@ namespace BlazorBlog.API.Controllers
             try
             {
                 string fileExtension = Path.GetExtension(addArticleDto.UploadedFile.FileName);
-                string[] allowedExtensions = { ".jpg", ".png", ".jpeg" };
 
-                if(addArticleDto.UploadedFile.FileContent.Length == 0) 
+                ServerDataResponse<AddArticleDto> checkedFileExtension = ArticleManager.CheckFileExtension(fileExtension);
+
+                if (!checkedFileExtension.IsSuccess)
                 {
-                    Response.Error = $"Article Image cannot be empty.";
-                    Response.StatusCode = System.Net.HttpStatusCode.BadRequest;
-                    return BadRequest(Response);
-
+                    return NotFound(checkedFileExtension);
                 }
 
-                if(!allowedExtensions.Contains(fileExtension)) 
-                {
-                    Response.Error = $"{fileExtension} is invalid image type.Please try another one.";
-                    Response.StatusCode = System.Net.HttpStatusCode.BadRequest;
-                    return BadRequest(Response);
-                }
-                // Convert the bytes to Kilobytes (1 KB = 1024 Bytes)
-                long fileSizeInKB = addArticleDto.UploadedFile.FileSize / 1024;
-                // Convert the KB to MegaBytes (1 MB = 1024 KBytes)
-                long fileSizeInMB = fileSizeInKB / 1024;
+                ServerDataResponse<AddArticleDto> checkedFileSize = ArticleManager.CheckFileSize(addArticleDto.UploadedFile.FileSize);
 
-                if(fileSizeInMB >= 2)
+                if(!checkedFileSize.IsSuccess) 
                 {
-                    Response.Error = $"Image File Size must be less than 2MB.";
-                    Response.StatusCode = System.Net.HttpStatusCode.BadRequest;
-                    return BadRequest(Response);
+                    return NotFound(checkedFileSize);
                 }
-
 
                 //resim adı tanımlanır.
                 string fileName = Guid.NewGuid().ToString() + Path.GetExtension(addArticleDto.UploadedFile.FileName);
@@ -302,7 +312,8 @@ namespace BlazorBlog.API.Controllers
                 Response.Error = ex.Message;
                 Response.IsSuccess = false;
                 Response.Message = "Something went wrong!";
-                return BadRequest(Response);
+                
+                return StatusCode(500,Response);
             }
         }
 
