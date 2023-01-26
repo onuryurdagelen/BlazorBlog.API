@@ -4,8 +4,10 @@ using BlazorBlog.API.Models;
 using BlazorBlog.API.Response;
 using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Mvc;
+using Microsoft.Data.SqlClient;
 using Microsoft.EntityFrameworkCore;
 using System.Globalization;
+using System.IO;
 
 namespace BlazorBlog.API.Controllers
 {
@@ -83,32 +85,86 @@ namespace BlazorBlog.API.Controllers
         // PUT: api/Articles/5
         // To protect from overposting attacks, see https://go.microsoft.com/fwlink/?linkid=2123754
         [HttpPut("{id}")]
-        public async Task<IActionResult> PutArticle(int id, Article article)
+        public async Task<ActionResult<ServerResponse>> PutArticle(int id, UpdateArticleDto updateArticleDto)
         {
-            if (id != article.Id)
+            ServerResponse response = new ServerResponse();
+            if (id != updateArticleDto.ArticleId)
             {
-                return BadRequest();
+                response.StatusCode=System.Net.HttpStatusCode.NotFound;
+                response.Message = "The id you chose doest not matches.";
+                response.IsSuccess = false;
+                return NotFound(response);
             }
+            Article existedArticle = await _context.Articles.Where(x => x.Id == id).FirstOrDefaultAsync();
 
-            _context.Entry(article).State = EntityState.Modified;
+            if (existedArticle != null)
+            {
 
+                if (updateArticleDto.UploadedFile != null)
+                {
+                    if (System.IO.File.Exists(existedArticle.ImagePath))
+                    {
+                        System.IO.File.Delete(existedArticle.ImagePath);
+                    }
+
+                    string fileName = Guid.NewGuid().ToString() + Path.GetExtension(updateArticleDto.UploadedFile.FileName);
+
+                    string path = Path.Combine(Directory.GetCurrentDirectory(), "wwwroot/assets/images/articles", fileName);
+                    using (Stream stream = new FileStream(path, FileMode.Create))
+                    {
+                        //gönderdiğimiz dosyayı stream'e kopyalarız.
+                        stream.Write(updateArticleDto.UploadedFile.FileContent, 0, updateArticleDto.UploadedFile.FileContent.Length);
+                    };
+                    existedArticle.Picture = "https://" + Request.Host + "/assets/images/articles/" + fileName;
+                    existedArticle.ImagePath = path;
+                }
+                existedArticle.ContentMain = updateArticleDto.Content;
+                existedArticle.Name = updateArticleDto.Title;
+                existedArticle.ContentSummary = updateArticleDto.Content.Substring(0, 200);
+                existedArticle.CategoryId = updateArticleDto.CategoryId;
+                _context.Articles.Update(existedArticle);
+            }
+            else
+            {
+                response.StatusCode = System.Net.HttpStatusCode.NotFound;
+                response.Message = "The article with id that you chose already deleted!";
+                response.IsSuccess = false;
+                return NotFound(response);
+            }
             try
             {
+               
                 await _context.SaveChangesAsync();
+
+                response.StatusCode = System.Net.HttpStatusCode.OK;
+                response.Message = "The article with number of " + id + " has successfully updated.";
+                response.IsSuccess = true;
+
+                return Ok(response);
+
             }
             catch (DbUpdateConcurrencyException)
             {
                 if (!ArticleExists(id))
                 {
-                    return NotFound();
+                   
+                    return NotFound(response);
                 }
                 else
                 {
                     throw;
                 }
             }
+            catch(SqlException ex)
+            {
+                response.StatusCode = System.Net.HttpStatusCode.NotFound;
+                response.Error = ex.InnerException.Message;
+                response.Message = "An Error Occured while updating article.Please the size of fields and try again";
+                response.IsSuccess = false;
+                return NotFound(response);
+            }
 
-            return NoContent();
+          
         }
 
         // POST: api/Articles
@@ -124,18 +180,22 @@ namespace BlazorBlog.API.Controllers
 
         // DELETE: api/Articles/5
         [HttpDelete("{id}")]
-        public async Task<IActionResult> DeleteArticle(int id)
+        public async Task<ActionResult<ServerResponse>> DeleteArticle(int id)
         {
-            var article = await _context.Articles.FindAsync(id);
+            ServerResponse response = new ServerResponse();
+            Article article = await _context.Articles.FindAsync(id);
             if (article == null)
             {
-                return NotFound();
+                response.IsSuccess = false;
+                response.Message = "There is no article with id  " + id;
+                return NotFound(response);
             }
 
             _context.Articles.Remove(article);
             await _context.SaveChangesAsync();
-
-            return NoContent();
+            response.Message = "The article with id " + id + " successfully deleted.";
+            response.IsSuccess = true;
+            return Ok(response);
         }
 
         private bool ArticleExists(int id)
@@ -254,9 +314,9 @@ namespace BlazorBlog.API.Controllers
 
         [HttpPost]
         [Route("AddArticle")]
-        public async Task<ActionResult<ServerDataResponse<AddArticleDto>>> InsertArticle(AddArticleDto addArticleDto)
+        public async Task<ActionResult<ServerDataResponse<Article>>> InsertArticle(AddArticleDto addArticleDto)
         {
-            ServerDataResponse<AddArticleDto> Response = new ServerDataResponse<AddArticleDto>();
+            ServerDataResponse<Article> Response = new ServerDataResponse<Article>();
             try
             {
                 string fileExtension = Path.GetExtension(addArticleDto.UploadedFile.FileName);
@@ -268,12 +328,12 @@ namespace BlazorBlog.API.Controllers
                     return NotFound(checkedFileExtension);
                 }
 
-                ServerDataResponse<AddArticleDto> checkedFileSize = ArticleManager.CheckFileSize(addArticleDto.UploadedFile.FileSize);
+                //ServerDataResponse<AddArticleDto> checkedFileSize = ArticleManager.CheckFileSize(addArticleDto.UploadedFile.FileSize);
 
-                if(!checkedFileSize.IsSuccess) 
-                {
-                    return NotFound(checkedFileSize);
-                }
+                //if(!checkedFileSize.IsSuccess) 
+                //{
+                //    return NotFound(checkedFileSize);
+                //}
 
                 //resim adı tanımlanır.
                 string fileName = Guid.NewGuid().ToString() + Path.GetExtension(addArticleDto.UploadedFile.FileName);
@@ -292,18 +352,19 @@ namespace BlazorBlog.API.Controllers
                 {
                     CategoryId = addArticleDto.CategoryId,
                     Name = addArticleDto.Title,
-                    ContentSummary = addArticleDto.Content.Substring(0, addArticleDto.Content.Length / 2),
+                    ContentSummary = addArticleDto.Content.Substring(0, 200),
                     ContentMain = addArticleDto.Content,
                     PublishDate = DateTime.Now,
+                    ImagePath = path,
                     Picture = "https://" + Request.Host + "/assets/images/articles/" + fileName,
                     ViewCount = 0
                 };
                 _context.Articles.Add(article);
                 _context.SaveChanges();
 
-                Response.Data = addArticleDto;
+                Response.Data = article;
                 Response.IsSuccess = true;
-                Response.Message = "Succesful.";
+                Response.Message = "Adding Article Succesfully done.";
 
                 return Ok(Response);
             }
@@ -311,7 +372,7 @@ namespace BlazorBlog.API.Controllers
             {
                 Response.Error = ex.Message;
                 Response.IsSuccess = false;
-                Response.Message = "Something went wrong!";
+                Response.Message = "Internal Server Error!";
                 
                 return StatusCode(500,Response);
             }

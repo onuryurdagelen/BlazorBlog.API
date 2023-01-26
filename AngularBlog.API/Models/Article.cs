@@ -17,6 +17,7 @@ namespace BlazorBlog.API.Models
         public DateTime PublishDate { get; set; }
         public string? Picture { get; set; }
         public int CategoryId { get; set; }
+        public string? ImagePath { get; set; } 
         public int ViewCount { get; set; }
 
         public virtual Category Category { get; set; } = null!;

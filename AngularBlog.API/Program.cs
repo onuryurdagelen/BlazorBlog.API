@@ -21,6 +21,7 @@ builder.Services.AddControllers(options =>
 	.AddFluentValidation(config =>
 	{
 		config.RegisterValidatorsFromAssemblyContaining<ContactEmailValidator>();
+		config.DisableDataAnnotationsValidation = true;
 
     })
 	.ConfigureApiBehaviorOptions(options => options.SuppressModelStateInvalidFilter = true)

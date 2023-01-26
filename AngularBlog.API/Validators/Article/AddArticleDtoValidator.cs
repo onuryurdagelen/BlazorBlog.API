@@ -9,16 +9,16 @@ namespace BlazorBlog.API.Validators.Article
         {
             RuleFor(x => x.UploadedFile.FileExtension)
                 .NotNull()
-                .WithMessage("FileExtension cannot be empty.");
+                .WithMessage("{PropertyName} cannot be empty.");
  
 
             RuleFor(x => x.UploadedFile.FileName)
                 .NotNull()
-                .WithMessage("FileName cannot be empty.");
+                .WithMessage("{PropertyName} cannot be empty.");
 
             RuleFor(x => x.UploadedFile.FileContent)
                 .NotNull()
-                .WithMessage("FileContent cannot be empty.");
+                .WithMessage("{PropertyName} cannot be empty.");
 
             //RuleFor(x => x).Custom((x, context) =>
             //{

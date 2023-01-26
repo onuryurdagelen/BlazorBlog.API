@@ -10,16 +10,16 @@ namespace BlazorBlog.API.Validators.Auth
             RuleFor(x => x.EmailAddress)
                 .NotNull()
                 .NotEmpty()
-                .WithMessage("Email cannot be empty");
+                .WithMessage("{PropertyName} cannot be empty");
 
             RuleFor(x => x.EmailAddress)
                .EmailAddress()
-               .WithMessage("Invalid Email Address.");
+               .WithMessage("{PropertyName} Email Address.");
 
             RuleFor(x => x.Password)
                 .NotEmpty()
                 .NotNull()
-                .WithMessage("Password cannot be empty");
+                .WithMessage("{PropertyName} cannot be empty");
         }
     }
 }
